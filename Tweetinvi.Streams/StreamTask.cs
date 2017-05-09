@@ -53,6 +53,7 @@ namespace Tweetinvi.Streams
         private ITwitterQuery _twitterQuery;
         private StreamReader _currentStreamReader;
         private HttpClient _currentHttpClient;
+        private int _currentResponseHttpStatusCode = TwitterException.DEFAULT_STATUS_CODE;
 
         public StreamTask(
             Func<string, bool> processObject,
@@ -215,6 +216,7 @@ namespace Tweetinvi.Streams
 
 
                 var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                _currentResponseHttpStatusCode = (int) response.StatusCode;
                 var body = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
                 return new StreamReader(body, Encoding.GetEncoding("utf-8"));
@@ -340,7 +342,7 @@ namespace Tweetinvi.Streams
         {
             _lastException =
                 _exceptionHandler.GenerateTwitterException(wex, _twitterQuery.QueryURL,
-                    _twitterQuery.TwitterCredentials);
+                    _twitterQuery.TwitterCredentials, _currentResponseHttpStatusCode);
 
             if (!_exceptionHandler.SwallowWebExceptions)
             {

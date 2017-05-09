@@ -30,7 +30,7 @@ namespace Tweetinvi.Core.Exceptions
             ITwitterCredentials credentials);
 
         TwitterException GenerateTwitterException(WebException webException, string url,
-            ITwitterCredentials credentials);
+            ITwitterCredentials credentials, int defaultStatusCode = TwitterException.DEFAULT_STATUS_CODE);
         TwitterException GenerateTwitterException(IWebRequestResult webRequestResult, ITwitterCredentials credentials);
         void AddTwitterException(ITwitterException twitterException);
     }

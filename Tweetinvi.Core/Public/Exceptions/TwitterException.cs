@@ -11,7 +11,9 @@ namespace Tweetinvi.Exceptions
     {
         TwitterException Create(ITwitterExceptionInfo[] exceptionInfos, string url, ITwitterCredentials credentials);
         TwitterException Create(IWebRequestResult webRequestResult, ITwitterCredentials credentials);
-        TwitterException Create(WebException webException, string url, ITwitterCredentials credentials);
+
+        TwitterException Create(WebException webException, string url, ITwitterCredentials credentials,
+            int statusCode = TwitterException.DEFAULT_STATUS_CODE);
     }
 
     public class TwitterExceptionFactory : ITwitterExceptionFactory
@@ -33,14 +35,17 @@ namespace Tweetinvi.Exceptions
             return new TwitterException(_webExceptionInfoExtractor, webRequestResult, credentials);
         }
 
-        public TwitterException Create(WebException webException, string url, ITwitterCredentials credentials)
+        public TwitterException Create(WebException webException, string url, ITwitterCredentials credentials,
+            int defaultStatusCode = TwitterException.DEFAULT_STATUS_CODE)
         {
-            return new TwitterException(_webExceptionInfoExtractor, webException, url, credentials);
+            return new TwitterException(_webExceptionInfoExtractor, webException, url, credentials, defaultStatusCode);
         }
     }
 
     public class TwitterException : WebException, ITwitterException
     {
+        public const int DEFAULT_STATUS_CODE = -1;
+
         public virtual WebException WebException { get; protected set; }
         public virtual string URL { get; set; }
         public virtual int StatusCode { get; protected set; }
@@ -84,11 +89,12 @@ namespace Tweetinvi.Exceptions
             IWebExceptionInfoExtractor webExceptionInfoExtractor,
             WebException webException,
             string url,
-            ITwitterCredentials credentials)
+            ITwitterCredentials credentials,
+            int defaultStatusCode = DEFAULT_STATUS_CODE)
             : this(url, credentials, webException.Message)
         {
             WebException = webException;
-            StatusCode = webExceptionInfoExtractor.GetWebExceptionStatusNumber(webException);
+            StatusCode = webExceptionInfoExtractor.GetWebExceptionStatusNumber(webException, defaultStatusCode);
             TwitterExceptionInfos = webExceptionInfoExtractor.GetTwitterExceptionInfo(webException);
             TwitterDescription = webExceptionInfoExtractor.GetStatusCodeDescription(StatusCode);
         }
