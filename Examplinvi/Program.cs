@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 // REST API
 using Tweetinvi;
@@ -18,7 +19,10 @@ using Stream = Tweetinvi.Stream;
 using Tweetinvi.Exceptions; // Handle Exceptions
 using Tweetinvi.Core.Extensions; // Extension methods provided by Tweetinvi
 using Tweetinvi.Models.DTO; // Data Transfer Objects for Serialization
-using Tweetinvi.Json; // JSON static classes to get json from Twitter.
+using Tweetinvi.Json;
+using Tweetinvi.Public.Models.Enum;
+
+// JSON static classes to get json from Twitter.
 
 // ReSharper disable UnusedVariable
 namespace Examplinvi
@@ -34,16 +38,95 @@ namespace Examplinvi
     {
         static void Main()
         {
-            Auth.SetUserCredentials("CONSUMER_KEY", "CONSUMER_SECRET", "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET");
+            Auth.SetUserCredentials("sI0GHDehRYEQit4OUqqJLrRKw", "6R6xBZaW4DV5XzSQo6BPqKdqu6PMwYdWM3rpNowVVaaC5NcOqJ", "1728100111-s1U5oNJbXBeanTfa2i4JGlP0rSgicu7ct0SNskK", "0rJ6MKQLS5c2QPd7D7F6C2vhTeI50n1X3LLTdb69cHnK9");
+
+            ExceptionHandler.SwallowWebExceptions = false;
 
             TweetinviEvents.QueryBeforeExecute += (sender, args) =>
             {
                 Console.WriteLine(args.QueryURL);
             };
 
+            // Tweetinvi settings
+            TweetinviConfig.ApplicationSettings.TweetMode = TweetMode.Extended;
+
+            // Increase request timeout pending #669
+            TweetinviConfig.ApplicationSettings.HttpRequestTimeout = 60000;
+
+            // Tweetinvi Application Settings get applied to any new threads spawned.
+            //  Also apply them to this current thread.
+            TweetinviConfig.CurrentThreadSettings.InitialiseFrom(TweetinviConfig.ApplicationSettings);
+
             var authenticatedUser = User.GetAuthenticatedUser();
 
             Console.WriteLine(authenticatedUser);
+
+            // Post video
+            // Read video from file system
+            byte[] rawVideo;
+            using (FileStream fs =
+                new FileStream(
+                    "C:\\Users\\joshk\\Videos\\Test\\GenYoutube.net_CHVRCHES_-_Cry_Me_A_River_Justin_Timberlake_cover_in_the_Live_Lounge.WEBM",
+                    FileMode.Open))
+            {
+                rawVideo = new byte[fs.Length];
+                fs.Read(rawVideo, 0, rawVideo.Length);
+            }
+
+            PublishTweetOptionalParameters publishParams = new PublishTweetOptionalParameters();
+
+            Console.WriteLine("Uploading video to Twitter");
+            IMedia twitterVideo = Upload.UploadVideo(rawVideo, "video/mp4", "amplify_video");
+            Console.WriteLine("Video uploaded to Twitter with Media ID {0}", twitterVideo.MediaId);
+
+            // Once uploaded, Twitter has to process the video. We must wait for it to be processed before it
+            //  can be used in a Tweet
+            IUploadedMediaInfo uploadingStatus;
+            do
+            {
+                // TODO: If we've already fetched the processing state once, we could also use processing
+                //  percentage to determine whether to check again soon, or back off a bit
+                Thread.Sleep(5000);
+
+                Console.WriteLine("Checking whether Twitter has finished processing video Media ID {0}",
+                    twitterVideo.MediaId);
+                uploadingStatus = Upload.GetMediaStatus(twitterVideo);
+            }
+            while (uploadingStatus.ProcessingInfo.ProcessingState == ProcessingState.Pending ||
+                   uploadingStatus.ProcessingInfo.ProcessingState == ProcessingState.InProgress);
+
+            // If there was a problem uploading the video
+            if (uploadingStatus.ProcessingInfo.ProcessingState != ProcessingState.Succeeded)
+            {
+                throw new Exception("It dun broked");
+            }
+
+            // Attach the media object to the Tweet we're about to send
+            publishParams.Medias = new List<IMedia>(1) { twitterVideo };
+
+            // Publish the Tweet
+            ITweet tweet = Tweet.PublishTweet("Test " + Guid.NewGuid(), publishParams);
+
+            if (tweet == null)
+            {
+                Console.WriteLine("Error publishing Tweet");
+                // TODO: Read Tweetinvi error handler
+            }
+
+
+            //ITweet tweet = Tweet.GetTweet(860179032578588688);
+            //Console.WriteLine(tweet);
+            //Console.WriteLine(tweet.Media.Count);
+
+            //Tweet.PublishTweet("test3 [ ‎¥", new PublishTweetOptionalParameters());
+
+            /*Tweet.PublishTweet("test exclude",
+                new PublishTweetOptionalParameters()
+                {
+                    InReplyToTweetId = 860513700012228608,
+                    AutoPopulateReplyMetadata = true,
+                    ExcludeReplyUserIds = new long[] { 3384432874, 1728100111 }
+                });*/
 
             // Un-comment to run the examples below
             // Examples.ExecuteExamples = true;
