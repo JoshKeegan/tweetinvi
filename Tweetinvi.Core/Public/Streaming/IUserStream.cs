@@ -53,18 +53,6 @@ namespace Tweetinvi.Streaming
         /// </summary>
         event EventHandler<TweetReceivedEventArgs> TweetCreatedByAnyoneButMe;
 
-        // Message
-
-        /// <summary>
-        /// Event informing that a message has been sent.
-        /// </summary>
-        event EventHandler<MessageEventArgs> MessageSent;
-
-        /// <summary>
-        /// Event informing that a message has been received.
-        /// </summary>
-        event EventHandler<MessageEventArgs> MessageReceived;
-
         // Follow
 
         /// <summary>

@@ -140,7 +140,6 @@ namespace Tweetinvi.Streams
                 // We analyze the different types of message from the stream
                 if (TryGetEvent(json)) return;
                 if (TryGetTweet(json)) return;
-                if (TryGetMessage(json)) return;
                 if (TryGetWarning(json)) return;
                 if (TryGetFriends(json)) return;
 
@@ -189,10 +188,6 @@ namespace Tweetinvi.Streams
         public event EventHandler<TweetReceivedEventArgs> TweetCreatedByFriend;
         public event EventHandler<TweetReceivedEventArgs> TweetCreatedByAnyone;
         public event EventHandler<TweetReceivedEventArgs> TweetCreatedByAnyoneButMe;
-
-        // Messages
-        public event EventHandler<MessageEventArgs> MessageSent;
-        public event EventHandler<MessageEventArgs> MessageReceived;
 
         // Friends
         public event EventHandler<GenericEventArgs<IEnumerable<long>>> FriendIdsReceived;
@@ -306,37 +301,6 @@ namespace Tweetinvi.Streams
             }
 
             return true;
-        }
-
-        // Message
-        private bool TryGetMessage(string jsonMessage)
-        {
-            var messageObject = _jObjectWrapper.GetJobjectFromJson(jsonMessage);
-            JToken messageJToken;
-
-            if (messageObject.TryGetValue("direct_message", out messageJToken))
-            {
-                var message = _messageFactory.GenerateMessageFromJson(messageJToken.ToString());
-                if (message == null)
-                {
-                    return false;
-                }
-
-                var messageEventArgs = new MessageEventArgs(message);
-                if (message.SenderId == _authenticatedUser.Id)
-                {
-                    this.Raise(MessageSent, messageEventArgs);
-                }
-
-                if (message.RecipientId == _authenticatedUser.Id)
-                {
-                    this.Raise(MessageReceived, messageEventArgs);
-                }
-
-                return true;
-            }
-
-            return false;
         }
 
         // Follow

@@ -910,9 +910,6 @@ namespace Examplinvi
             // Tweet Published
             EventsRelatedWithTweetCreation(userStream);
 
-            // Messages
-            EventsRelatedWithMessages(userStream);
-
             // Favourited - Unfavourited
             EventsRelatedWithTweetAndFavourite(userStream);
 
@@ -961,12 +958,6 @@ namespace Examplinvi
             {
                 Console.WriteLine("Tweet created by {0}", args.Tweet.CreatedBy.Name);
             };
-        }
-
-        public static void EventsRelatedWithMessages(IUserStream userStream)
-        {
-            userStream.MessageSent += (sender, args) => { Console.WriteLine("message '{0}' sent", args.Message.Text); };
-            userStream.MessageReceived += (sender, args) => { Console.WriteLine("message '{0}' received", args.Message.Text); };
         }
 
         public static void EventsRelatedWithTweetAndFavourite(IUserStream userStream)
